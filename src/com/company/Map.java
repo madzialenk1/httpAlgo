@@ -1,12 +1,13 @@
-
-
 package com.company;
 
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Random;
 
@@ -23,12 +24,13 @@ public class Map {
     private int Ysize;
     private boolean theEnd;
     private HttpClient client;
+    private String httpRequest;
     private HttpRequest possibilitiesRequest;
 
     public Map() throws IOException, InterruptedException {
-
         client = HttpClient.newHttpClient();
-        possibilitiesRequest = HttpRequest.newBuilder().uri(URI.create("http://tesla.iem.pw.edu.pl:4444/711be1fa/4/possibilities")).build();
+        httpRequest = "http://tesla.iem.pw.edu.pl:4444/a732410b/4/";
+        possibilitiesRequest = HttpRequest.newBuilder().uri(URI.create(httpRequest + "possibilities")).build();
         this.theEnd = false;
         setStartPosition();
         initMaze();
@@ -38,25 +40,16 @@ public class Map {
         howManyTimesVisitedCell = new int[Xsize][Ysize];
         setHowManyTimesVisitedCell();
         setIsItDead();
-
-
     }
 
     public void fillMaze() throws IOException, InterruptedException {
-        System.out.println(theEnd);
 
-        while (this.theEnd == false) {
-            go(x, y);
-            counterPossibilitiesForOneCell();
+        while (!this.theEnd) {
+            markPossibilitiesInMaze(checkPossibilities(), x, y);
+            possibilitiesCounters[x][y] = checkPossibilities().size();
             move();
-            printMaze();
+            //printMaze();
         }
-    }
-
-    private void counterPossibilitiesForOneCell() {
-
-        ArrayList<String> possibilities = checkDirection();
-        possibilitiesCounters[x][y] = possibilities.size();
     }
 
     private void setHowManyTimesVisitedCell() {
@@ -67,14 +60,6 @@ public class Map {
         }
     }
 
-
-    private void go(int x, int y) {
-        maze[x][y] = '0';
-        markPossibilitiesInMaze(checkDirection(), x, y);
-
-    }
-
-
     private void setIsItDead() {
         isItDead = new boolean[Xsize][Ysize];
         for (int i = 0; i < Xsize; i++) {
@@ -83,7 +68,6 @@ public class Map {
             }
         }
     }
-
 
     private void initMaze() {
         setSize();
@@ -99,31 +83,10 @@ public class Map {
         if (howManyTimesVisitedCell[x][y] >= possibilitiesCounters[x][y]) {
             isItDead[x][y] = true;
         }
-
-    }
-
-    private void moveRight() throws IOException, InterruptedException {
-        HttpClient client = HttpClient.newHttpClient();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://tesla.iem.pw.edu.pl:4444/711be1fa/4/move/right"))
-                .POST(HttpRequest.BodyPublishers.ofString(""))
-                .build();
-
-        HttpResponse<String> response = null;
-        try {
-
-            response = client.send(request,
-                    HttpResponse.BodyHandlers.ofString());
-        } catch (InterruptedException | IOException e) {
-            e.printStackTrace();
-        }
-        System.out.println(response.body()); // Moved successfully
-
-
     }
 
     private ArrayList<String> directionToMove() {
-        ArrayList<String> list = checkDirection();
+        ArrayList<String> list = checkPossibilities();
         ArrayList<String> direction = new ArrayList<>();
         String[] tab = new String[4];
         int howManyTimesVisited = 5;
@@ -134,33 +97,28 @@ public class Map {
 
             switch (s) {
                 case "left":
-                    if (isItDead[x][y - 2] == false) {
-                        System.out.println("mamam");
+                    if (!isItDead[x][y - 2]) {
                         if (howManyTimesVisitedCell[x][y - 2] == howManyTimesVisited) {
                             if (i != 0) {
-                                counter++;
-                                tab[counter] = "left";
+                                tab[++counter] = "left";
                             } else {
                                 tab[i] = "left";
                             }
                         }
+
                         if (howManyTimesVisitedCell[x][y - 2] < howManyTimesVisited) {
                             howManyTimesVisited = howManyTimesVisitedCell[x][y - 2];
                             counter = 0;
                             tab[counter] = "left";
-
-
                         }
                     }
                     break;
 
                 case "right":
-                    if (isItDead[x][y + 2] == false) {
-                        System.out.println("mamam");
+                    if (!isItDead[x][y + 2]) {
                         if (howManyTimesVisitedCell[x][y + 2] == howManyTimesVisited) {
                             if (i != 0) {
-                                counter++;
-                                tab[counter] = "right";
+                                tab[++counter] = "right";
                             } else {
                                 tab[i] = "right";
                             }
@@ -170,18 +128,15 @@ public class Map {
                             howManyTimesVisited = howManyTimesVisitedCell[x][y + 2];
                             counter = 0;
                             tab[counter] = "right";
-
-
                         }
                     }
                     break;
 
                 case "up":
-                    if (isItDead[x - 2][y] == false) {
+                    if (!isItDead[x - 2][y]) {
                         if (howManyTimesVisitedCell[x - 2][y] == howManyTimesVisited) {
                             if (i != 0) {
-                                counter++;
-                                tab[counter] = "up";
+                                tab[++counter] = "up";
                             } else {
                                 tab[i] = "up";
                             }
@@ -196,13 +151,11 @@ public class Map {
                     }
                     break;
 
-
                 case "down":
-                    if (isItDead[x + 2][y] == false) {
+                    if (!isItDead[x + 2][y]) {
                         if (howManyTimesVisitedCell[x + 2][y] == howManyTimesVisited) {
                             if (i != 0) {
-                                counter++;
-                                tab[counter] = "down";
+                                tab[++counter] = "down";
                             } else {
                                 tab[i] = "down";
                             }
@@ -212,71 +165,51 @@ public class Map {
                             howManyTimesVisited = howManyTimesVisitedCell[x + 2][y];
                             counter = 0;
                             tab[counter] = "down";
-
-
                         }
                     }
                     break;
-
             }
         }
-
 
         for(String s : tab){
             if(s!=null)
                 direction.add(s);
-
         }
 
-
         if (direction.size() == 0) {
-            theEnd = true;
-
-            // dzięki temu wiemy kiedy koniec
+            theEnd = true;  // dzięki temu wiemy kiedy koniec
         }
 
         return direction;
     }
 
-
     private void move() throws IOException, InterruptedException {
         ArrayList<String> list = directionToMove();
         Random rand = new Random();
 
-        if (theEnd == false) {
-            String wylosowana = list.get(rand.nextInt(list.size()));
-            switch (wylosowana) {
+        if (!theEnd) {
+            String direction = list.get(rand.nextInt(list.size()));
+            howManyTimesVisitedCell[x][y]++;
+            move(direction);
+            dead();
+            switch (direction) {
                 case "left":
-                    if (isItDead[x][y - 2] == false) {
-                        howManyTimesVisitedCell[x][y]++;
-                        dead();
-                        moveLeft();
+                    if (!isItDead[x][y - 2]) {
                         y = y - 2;
-
                     }
                     break;
                 case "right":
-
-                    if (isItDead[x][y + 2] == false) {
-                        howManyTimesVisitedCell[x][y]++;
-                        dead();
-                        moveRight();
+                    if (!isItDead[x][y + 2]) {
                         y = y + 2;
                     }
                     break;
                 case "up":
-                    if (isItDead[x - 2][y] == false) {
-                        howManyTimesVisitedCell[x][y]++;
-                        dead();
-                        moveUp();
+                    if (!isItDead[x - 2][y]) {
                         x = x - 2;
                     }
                     break;
                 case "down":
-                    if (isItDead[x + 2][y] == false) {
-                        howManyTimesVisitedCell[x][y]++;
-                        dead();
-                        moveDown();
+                    if (!isItDead[x + 2][y]) {
                         x = x + 2;
                     }
                     break;
@@ -284,80 +217,25 @@ public class Map {
         }
     }
 
-
-    private void moveLeft() {
+    private void move(String direction) throws IOException, InterruptedException {
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://tesla.iem.pw.edu.pl:4444/711be1fa/4/move/left"))
-                .POST(HttpRequest.BodyPublishers.ofString(""))
-                .build();
-        HttpResponse<String> response = null;
-        try {
-
-            response = client.send(request,
-                    HttpResponse.BodyHandlers.ofString());
-        } catch (InterruptedException | IOException e) {
-            e.printStackTrace();
-
-        }
-        System.out.println(response.body()); // Moved successfully
-
-
-    }
-
-    private void moveUp() throws IOException, InterruptedException {
-        HttpClient client = HttpClient.newHttpClient();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://tesla.iem.pw.edu.pl:4444/711be1fa/4/move/up"))
+                .uri(URI.create(httpRequest + "move/" + direction))
                 .POST(HttpRequest.BodyPublishers.ofString(""))
                 .build();
 
         HttpResponse<String> response = null;
         try {
-
             response = client.send(request,
                     HttpResponse.BodyHandlers.ofString());
         } catch (InterruptedException | IOException e) {
             e.printStackTrace();
         }
-        System.out.println(response.body()); // Moved successfully
-
-
+        //System.out.println(response.body()); // Moved successfully
     }
-
-    private void moveDown() throws IOException, InterruptedException {
-        HttpClient client = HttpClient.newHttpClient();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://tesla.iem.pw.edu.pl:4444/711be1fa/4/move/down"))
-                .POST(HttpRequest.BodyPublishers.ofString(""))
-                .build();
-
-        HttpResponse<String> response = null;
-        try {
-
-            response = client.send(request,
-                    HttpResponse.BodyHandlers.ofString());
-        } catch (InterruptedException | IOException e) {
-            e.printStackTrace();
-        }
-        System.out.println(response.body()); // Moved successfully
-
-
-    }
-
-
-    private void printMaze() {
-        for (int i = 0; i < Xsize; i++) {
-            for (int j = 0; j < Ysize; j++) {
-                System.out.print(maze[i][j]);
-            }
-            System.out.println();
-        }
-    }
-
 
     private void setSize() {
-        HttpRequest sizeRequest = HttpRequest.newBuilder().uri(URI.create("http://tesla.iem.pw.edu.pl:4444/711be1fa/4/size")).build();
+        HttpRequest sizeRequest = HttpRequest.newBuilder().uri(URI.create(httpRequest + "size")).build();
         HttpResponse<String> size = null;
         try {
             size = client.send(sizeRequest, HttpResponse.BodyHandlers.ofString());
@@ -367,11 +245,11 @@ public class Map {
         Ysize = Integer.parseInt(size.body().split("x")[0]) * 2 + 1;
         Xsize = Integer.parseInt(size.body().split("x")[1]) * 2 + 1;
 
-        System.out.println("Rozmiary tablicy to x=" + Xsize + "a y=" + Ysize);
+        System.out.println("Rozmiary tablicy to x = " + Xsize + " y = " + Ysize);
     }
 
     private void setStartPosition() {
-        HttpRequest startPositionRequest = HttpRequest.newBuilder().uri(URI.create("http://tesla.iem.pw.edu.pl:4444/711be1fa/4/startposition")).build();
+        HttpRequest startPositionRequest = HttpRequest.newBuilder().uri(URI.create(httpRequest + "startposition")).build();
         HttpResponse<String> startPosition = null;
         try {
             startPosition = client.send(startPositionRequest, HttpResponse.BodyHandlers.ofString());
@@ -385,8 +263,7 @@ public class Map {
         System.out.println("Pozycja startowa: x = " + actualX + " y = " + actualY);
     }
 
-
-    private ArrayList<String> checkDirection() {
+    private ArrayList<String> checkPossibilities() {
         HttpResponse<String> response = null;
         try {
             response = client.send(this.possibilitiesRequest,
@@ -394,21 +271,20 @@ public class Map {
         } catch (InterruptedException | IOException e) {
             e.printStackTrace();
         }
-        System.out.println(response.body());
+        //System.out.println(response.body());
         String[] responses = response.body().split(",");
         ArrayList<String> possibilities = new ArrayList<>();
-
 
         for (String direction : responses) {
             if (direction.split("\"")[3].charAt(0) == '0')
                 possibilities.add(direction.split("\"")[1]);
         }
 
-
         return possibilities;
     }
 
     private void markPossibilitiesInMaze(ArrayList<String> possibilities, int x, int y) {
+        maze[x][y] = '0';
 
         for (String p :
                 possibilities) {
@@ -433,8 +309,52 @@ public class Map {
         }
     }
 
+    private void printMaze() {
+        System.out.println(mazeToString());
+    }
 
+    private String mazeToString(){
+        StringBuilder sb = new StringBuilder("");
+
+        for (int i = 0; i < Xsize; i++){
+            for (int j =0; j < Ysize; j++){
+                sb.append(maze[i][j]);
+            }
+            sb.append("\n");
+        }
+        return sb.toString();
+    }
+
+    void saveToFile(String fileName) throws IOException {
+        FileWriter fileOut = null;
+        try{
+            fileOut = new FileWriter(fileName);
+
+            fileOut.write(mazeToString());
+
+        }catch (IOException e){
+            e.printStackTrace();
+        }finally {
+            if (fileOut != null)
+                fileOut.close();
+        }
+    }
+
+    void sendOnServer(String fileName) throws FileNotFoundException {
+        try{
+            saveToFile(fileName);
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(httpRequest + "upload")).POST(HttpRequest.BodyPublishers.ofFile(Paths.get(fileName))).build();
+
+        HttpResponse response = null;
+        try {
+            response = client.send(request,HttpResponse.BodyHandlers.ofString());
+        }catch (InterruptedException | IOException e){
+            e.printStackTrace();
+        }
+        System.out.println(response.statusCode());
+        System.out.println(response.body());
+    }
 }
-
-
-

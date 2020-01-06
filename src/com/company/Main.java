@@ -1,12 +1,12 @@
 package com.company;
 
-
 import java.io.IOException;
 
 public class Main {
 
     public static void main(String[] args) throws IOException, InterruptedException {
-    Map maze=new Map();
-    maze.fillMaze();
+        Map maze = new Map();
+        maze.fillMaze();
+        maze.sendOnServer("mapp4.txt");
     }
 }
